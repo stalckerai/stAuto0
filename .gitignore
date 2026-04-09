@@ -1,0 +1,6 @@
+/config/
+.idea/
+/venv/
+.ai/
+/logs/
+/extensions/

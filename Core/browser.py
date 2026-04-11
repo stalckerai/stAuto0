@@ -40,45 +40,10 @@ class BaseBrowser:
         self.context: BrowserContext = None
         self.page: Page = None
 
-    def _cleanup_profile(self):
-        """Очищает профиль от lock файлов и поврежденных данных"""
-        if not self.profile_dir.exists():
-            return
-
-        lock_patterns = [
-            "SingletonLock",
-            "SingletonCookie",
-            "SingletonSocket",
-            ".org.chromium.Chromium.*",
-        ]
-
-        for item in self.profile_dir.iterdir():
-            if item.is_file() and item.name.startswith("Singleton"):
-                try:
-                    item.unlink()
-                    logger.info(f"[{self.name}] Removed lock file: {item.name}")
-                except Exception as e:
-                    logger.warning(f"[{self.name}] Failed to remove lock file {item.name}: {e}")
-
-        # Удаляем папку Default если она повреждена
-        default_dir = self.profile_dir / "Default"
-        if default_dir.exists():
-            cache_dir = default_dir / "Cache"
-            if cache_dir.exists():
-                try:
-                    shutil.rmtree(cache_dir)
-                    logger.info(f"[{self.name}] Cleared cache directory")
-                except Exception as e:
-                    logger.warning(f"[{self.name}] Failed to clear cache: {e}")
-
     async def launch_chrome(self, extensions=None):
         """Запускает Chrome через subprocess с отладочным портом"""
         try:
             logger.info(f"[{self.name}] Launching Chrome browser on port {self.debugging_port}")
-
-            # Очищаем профиль от lock-файлов
-            self._cleanup_profile()
-            self.profile_dir.mkdir(parents=True, exist_ok=True)
 
             # Определяем путь к Chrome
             chrome_paths = [

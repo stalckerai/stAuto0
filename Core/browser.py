@@ -135,6 +135,45 @@ class BaseBrowser:
         await self.launch_chrome(extensions)
         await self.connect()
 
+    async def login_zerion(self, password: str = None):
+        """Логин в Zerion Wallet"""
+        try:
+            wallet_password = password or self.account.get("wallet_password")
+            if not wallet_password:
+                logger.warning(f"[{self.name}] No wallet password found, skipping login")
+                return
+
+            login_url = "chrome-extension://klghhnkeealcohjjanjjdaeeggmfmlpl/popup.8e8f209b.html?windowType=dialog#/login"
+            logger.info(f"[{self.name}] Opening Zerion login page")
+
+            page = await self.context.new_page()
+            await page.goto(login_url, wait_until="domcontentloaded", timeout=15000)
+            await asyncio.sleep(3)
+
+            # Проверяем наличие поля ввода пароля
+            password_field = await page.query_selector('input[name="password"][type="password"]')
+            if password_field:
+                logger.info(f"[{self.name}] Password field found, entering password")
+                await password_field.fill(wallet_password, timeout=5000)
+                await asyncio.sleep(1)
+
+                # Нажимаем Unlock
+                unlock_btn = await page.query_selector('button.EyUuEa_primary:text("Unlock")')
+                if unlock_btn:
+                    await unlock_btn.click()
+                    logger.info(f"[{self.name}] Unlock button clicked")
+                    await asyncio.sleep(3)
+                    logger.info(f"[{self.name}] Zerion login completed")
+                else:
+                    logger.warning(f"[{self.name}] Unlock button not found")
+            else:
+                logger.info(f"[{self.name}] Password field not found — wallet may already be unlocked")
+
+            await page.close()
+
+        except Exception as e:
+            logger.error(f"[{self.name}] Zerion login error: {e}", exc_info=True)
+
     async def run_project(self, project_class):
         """Создаёт экземпляр проекта и вызывает его метод run"""
         try:

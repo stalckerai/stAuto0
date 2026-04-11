@@ -17,10 +17,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-async def run_account(account: dict):
+async def run_account(account: dict, login_wallet: bool = False):
     browser = BaseBrowser(account)
     try:
         await browser.launch()
+        if login_wallet:
+            await browser.login_zerion()
         await browser.run_project(TestProject)
     except Exception as e:
         logger.error(f"[{account['name']}] Fatal error: {e}", exc_info=True)
@@ -31,10 +33,11 @@ async def run_account(account: dict):
 async def main():
     active_accounts = [a for a in accounts if a.get("status") == "active"]
     logger.info(f"Found {len(active_accounts)} active accounts")
-    
+
     for i, account in enumerate(active_accounts):
         logger.info(f"Starting account {i+1}/{len(active_accounts)}: {account['name']}")
-        await run_account(account)
+        login_wallet = (i == 0)  # Логин только для первого аккаунта
+        await run_account(account, login_wallet)
         
         # Задержка между профилями для стабильности
         if i < len(active_accounts) - 1:

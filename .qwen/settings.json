@@ -10,7 +10,13 @@
       "Bash(start *)",
       "Bash(timeout *)",
       "Bash(type *)",
-      "Bash(powershell *)"
+      "Bash(powershell *)",
+      "Bash(rmdir *)",
+      "Bash(venv\\scripts\\pip.exe *)",
+      "Bash(c:\\users\\stalcker\\ai\\stauto0\\venv\\scripts\\python.exe *)",
+      "Bash(c:\\users\\stalcker\\ai\\stauto0\\venv\\scripts\\pip.exe *)",
+      "Bash(mkdir *)",
+      "Bash(move *)"
     ]
   },
   "$version": 3

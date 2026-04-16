@@ -34,9 +34,22 @@ class ConcreteProject(BaseProject):
 
 ---
 
-## Методы
+## Логин на Paragraph.com
 
-### `_check_done(page=None) -> bool`
+**Метод:** `_login_paragraph()`
+
+**Привязка:** Zerion Wallet через Privy + injected provider.
+
+**Шаги:**
+
+| Шаг | Действие | Описание |
+|---|---|---|
+| 1 | Клик "Continue with a wallet" | Privy модал, `<div class="sc-FEMpB cWABZH">` |
+| 2 | Ввод "Zerion" в поиск | `input[placeholder*='Search through']` |
+| 3 | Клик по `<span class="sc-hEkkVl hPdPOi">Zerion</span>` | Ловим popup через `context.expect_page()` |
+| 4 | `click_confirm(popup)` | Zerion показывает диалог подписи → последняя кнопка (Sign) |
+| 5 | `page.reload()` | Privy обнаруживает подключённый кошелёк |
+| 6 | Пост-логин кнопка (если есть) | Закрывает модал |
 
 Проверяет, выполнена ли задача (найдена одна из кнопок завершения).
 
@@ -235,3 +248,216 @@ python main.py
 # Один аккаунт, Concrete
 python main.py auto_001
 ```
+
+---
+
+# Unregular Task — Paragraph Article + Concrete Submission
+
+## Описание
+
+Нерегулярная задача для публикации статьи на **Paragraph.com** и отправки URL в Concrete.xyz для получения поинтов.
+
+**Выполняет:**
+1. Логин на Paragraph.com через Zerion
+2. Чтение статьи из `tmp/{account_name}.txt`
+3. Публикация статьи на Paragraph
+4. Копирование URL статьи
+5. Переход на Concrete.xyz/home
+6. Отправка URL статьи
+
+**Метод:** `_unregular_paragraph_task()`
+
+---
+
+## Формат файла статьи
+
+**Путь:** `tmp/{account_name}.txt`
+
+**Структура:**
+```
+Заголовок статьи (первая строка)
+Текст статьи (все остальные строки)
+```
+
+**Пример (`tmp/auto_001.txt`):**
+```
+My New Article About DeFi
+This is the body of the article.
+It can span multiple lines.
+```
+
+---
+
+## Шаги выполнения
+
+### 1. Логин на Paragraph.com
+
+| Шаг | Действие | Ожидание |
+|---|---|---|
+| 1.1 | Переход на `https://paragraph.com` | 3 сек |
+| 1.2 | Клик "Sign in" | 5 сек |
+| 1.3 | Клик "Continue with a wallet" | 5 сек |
+| 1.4 | Клик "Zerion" → popup → `click_confirm()` | — |
+| 1.5 | Клик post-login кнопки | 5 сек |
+
+**Селекторы:**
+```python
+sign_in_btn = page.get_by_role("button", name="Sign in")
+continue_btn = page.locator("div.sc-FEMpB.cWABZH", has_text="Continue with a wallet")
+zerion_btn = page.locator("span.sc-hEkkVl.hPdPOi", has_text="Zerion")
+post_login_btn = xpath='/html/body/div[2]/div/div[1]/div/div[2]/div[3]/button/div'
+```
+
+### 2. Чтение статьи
+
+```python
+article_file = TMP_DIR / f"{account_name}.txt"
+# Первая строка = заголовок
+# Остальные строки = текст статьи
+```
+
+### 3. Вставка заголовка
+
+```python
+title_textarea = page.locator("textarea[data-editor-field='title']")
+await title_textarea.fill(title)
+```
+
+### 4. Вставка текста статьи
+
+**Способ 1:** Через xpath (основной)
+```python
+editor_p = await page.query_selector('//*[@id="paragraph-tiptap-editor"]/p')
+await page.evaluate(f"p.textContent = `{escaped_text}`")
+```
+
+**Способ 2:** Через contenteditable (альтернативный)
+```python
+editable = page.locator('[contenteditable="true"]').first
+await editable.fill(article_text)
+```
+
+### 5. Публикация
+
+| Шаг | Действие | Ожидание |
+|---|---|---|
+| 5.1 | Клик "Continue" | 3 сек |
+| 5.2 | Клик "Publish" | 7 сек |
+
+### 6. Копирование URL
+
+| Шаг | Действие | Ожидание |
+|---|---|---|
+| 6.1 | Клик по share-кнопке (radix) | 3 сек |
+| 6.2 | Чтение URL из `input[readonly][value*="paragraph.com"]` | — |
+
+### 7. Переход на Concrete.xyz
+
+| Шаг | Действие | Ожидание |
+|---|---|---|
+| 7.1 | Переход на `https://points.concrete.xyz/home` | 3 сек |
+| 7.2 | Логин (если нужно) | — |
+| 7.3 | Вставка URL в `input[id="url"][type="url"]` | 3 сек |
+| 7.4 | Клик "Submit URL" | 5 сек |
+| 7.5 | Проверка кнопки "Close" → успех | — |
+
+---
+
+## Запуск
+
+```bash
+# Один аккаунт
+python main.py paragraph auto_001
+
+# Все аккаунты
+python main.py paragraph
+```
+
+---
+
+## Логирование
+
+```
+[auto_001] ===== Starting unregular paragraph task =====
+[auto_001] Navigating to paragraph.com
+[auto_001] Paragraph login: searching for 'Sign in' button
+[auto_001] 'Sign in' found, clicking
+[auto_001] Reading article from tmp/auto_001.txt
+[auto_001] Article title: My New Article About DeFi...
+[auto_001] Article text length: 245 chars
+[auto_001] Title inserted
+[auto_001] Article text inserted
+[auto_001] 'Continue' found, clicking
+[auto_001] 'Publish' found, clicking
+[auto_001] Article URL copied: https://paragraph.com/@0xbad.../my-new-article
+[auto_001] Navigating to concrete.xyz/home
+[auto_001] Article URL inserted into concrete
+[auto_001] 'Submit URL' found, clicking
+[auto_001] 'Close' button found — task completed successfully!
+```
+
+---
+
+## Подготовка файла статьи
+
+1. Создать папку `tmp/` в корне проекта (если нет)
+2. Создать файл `tmp/auto_001.txt` (имя = имя аккаунта)
+3. Первая строка — заголовок
+4. Остальные строки — текст статьи
+
+**Пример структуры:**
+```
+stAuto0/
+├── tmp/
+│   ├── auto_001.txt
+│   ├── auto_002.txt
+│   └── ...
+├── projects/
+├── config/
+└── main.py
+```
+
+---
+
+## Зависимости unregular task
+
+- Файлы статей в `tmp/{account_name}.txt`
+- Zerion Wallet установлен в браузере
+- Аккаунты имеют средства для публикации (если требуется)
+
+---
+
+## Ошибки unregular task
+
+### "Article file not found"
+
+**Причина:** Файл `tmp/{account_name}.txt` не существует.
+
+**Решение:** Создать файл с правильным именем аккаунта.
+
+### "Article file must have at least 2 lines"
+
+**Причина:** Файл пустой или только заголовок.
+
+**Решение:** Добавить текст статьи после заголовка.
+
+### "Failed to insert title"
+
+**Причина:** Поле заголовка не найдено или страница не загрузилась.
+
+**Решение:** Увеличить timeout, проверить что пользователь залогинен.
+
+### "Failed to insert article text"
+
+**Причина:** Редактор не найден.
+
+**Решение:** Проверить что редактор загрузился, попробовать альтернативный способ через contenteditable.
+
+### "'Close' button not found"
+
+**Причина:** Отправка URL не прошла или страница не обновилась.
+
+**Решение:**
+- Проверить что URL статьи корректный
+- Убедиться что аккаунт залогинен на Concrete
+- Проверить что кнопка "Submit URL" была найдена и нажата

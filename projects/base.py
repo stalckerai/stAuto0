@@ -64,11 +64,10 @@ class BaseProject:
         """
         Если True — проект работает в НОВОМ табе.
         Если False — проект использует существующий таб.
-        
-        По умолчанию: False (использует существующий таб).
-        Переопредели в проекте если нужен отдельный таб.
+
+        По умолчанию: True (каждый проект в своём табе).
         """
-        return False
+        return True
 
     async def _check_done(self, page=None) -> bool:
         return False

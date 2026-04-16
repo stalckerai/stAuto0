@@ -79,6 +79,37 @@ async def run_account(account: dict, login_wallet: bool = False):
         await browser.close()
 
 
+async def run_unregular_paragraph(account: dict):
+    """
+    Запуск нерегулярной задачи: публикация статьи на Paragraph + отправка в Concrete.
+    """
+    from projects.concrete import ConcreteProject
+
+    browser = BaseBrowser(account)
+    try:
+        await browser.launch()
+
+        # Логин в Zerion для Concrete
+        await browser.login_zerion()
+
+        # Запускаем Concrete проект с нерегулярной задачей
+        project = ConcreteProject(browser.context, browser.page, account, browser)
+
+        # Выполняем нерегулярную задачу
+        logger.info(f"[{account['name']}] ===== Running UNREGULAR paragraph task =====")
+        success = await project._unregular_paragraph_task()
+
+        if success:
+            logger.info(f"[{account['name']}] Unregular task completed successfully")
+        else:
+            logger.warning(f"[{account['name']}] Unregular task may have failed")
+
+    except Exception as e:
+        logger.error(f"[{account['name']}] Unregular task error: {e}", exc_info=True)
+    finally:
+        await browser.close()
+
+
 async def main():
     # Проверяем аргументы
     if len(sys.argv) > 1 and sys.argv[1] == "test":
@@ -94,6 +125,32 @@ async def main():
             await run_account(account, login_wallet)
             if i < len(active_accounts) - 1:
                 await asyncio.sleep(3)
+        return
+
+    # Нерегулярная задача: Paragraph article + Concrete submission
+    if len(sys.argv) > 1 and sys.argv[1] == "paragraph":
+        account_name = sys.argv[2] if len(sys.argv) > 2 else None
+
+        if account_name:
+            # Один аккаунт
+            kill_chrome_processes()
+            account = next((a for a in accounts if a["name"] == account_name), None)
+            if not account:
+                logger.error(f"Account '{account_name}' not found")
+                sys.exit(1)
+            logger.info(f"Running unregular paragraph task for: {account['name']}")
+            await run_unregular_paragraph(account)
+        else:
+            # Все аккаунты
+            active_accounts = [a for a in accounts if a.get("status") == "active"]
+            logger.info(f"Running unregular paragraph task for {len(active_accounts)} accounts")
+
+            for i, account in enumerate(active_accounts):
+                kill_chrome_processes()
+                logger.info(f"Account {i+1}/{len(active_accounts)}: {account['name']}")
+                await run_unregular_paragraph(account)
+                if i < len(active_accounts) - 1:
+                    await asyncio.sleep(3)
         return
 
     # Обычный режим — один или все аккаунты

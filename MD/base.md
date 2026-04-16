@@ -172,7 +172,7 @@ await browser.click_confirm(confirm_popup)
 | `_get_page_name()` | Название проекта для логов | `"project"` |
 | `_get_start_url()` | Стартовая страница | `"about:blank"` |
 | `_get_max_attempts()` | Кол-во попыток | `3` |
-| `_use_new_tab()` | Если `True` — проект в НОВОМ табе | `False` |
+| `_use_new_tab()` | Если `True` — проект в НОВОМ табе | `True` |
 | `_check_done()` | Проверка выполнения задачи | `False` |
 | `_login()` | Логин/подключение кошелька | `pass` |
 | `_process() -> bool` | Основная логика. `True` = успех | `True` |

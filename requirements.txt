@@ -3,3 +3,5 @@ eth-account
 base58
 pynacl
 playwright
+requests
+websocket-client
